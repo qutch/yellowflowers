@@ -5,29 +5,46 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     private float horizontal;
-    private float speed = 8;
+    private float speed = 10;
     private float jumpingPower = 16;
     private bool isFacingRight = true;
+
+    public LogicScript logic;
+    public GroundScript ground;
 
     [SerializeField] private Rigidbody2D rb;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private Transform groundCheck;
+
+    private void Start()
+    {
+        logic = GameObject.FindGameObjectWithTag("Logic").GetComponent<LogicScript>();
+        ground = GameObject.FindGameObjectWithTag("Ground").GetComponent<GroundScript>();
+    }
+
     private void Update()
     {
         horizontal = Input.GetAxisRaw("Horizontal");
 
-        if (Input.GetButtonDown("Jump") && isGrounded())
+        if (Input.GetButtonDown("Jump") && isGrounded() && ground.playerIsAlive)
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpingPower);
         }
 
         Flip();
 
+        if (!ground.playerIsAlive)
+        {
+            rb.velocity = Vector2.zero;
+        }
     }
 
     private void FixedUpdate()
     {
-        rb.velocity = new Vector2(horizontal * speed, rb.velocity.y);
+        if (ground.playerIsAlive)
+        {
+            rb.velocity = new Vector2(horizontal * speed, rb.velocity.y);
+        }
     }
 
     private bool isGrounded()
@@ -37,7 +54,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Flip()
     {
-        if (isFacingRight && horizontal < 0 || !isFacingRight && horizontal > 0)
+        if (isFacingRight && horizontal < 0 && ground.playerIsAlive || !isFacingRight && horizontal > 0 && ground.playerIsAlive)
         {
             isFacingRight = !isFacingRight;
             Vector3 localScale = transform.localScale;
@@ -48,9 +65,11 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.gameObject.name == "Enemy")
+        if (collision.gameObject.tag == "Enemy" && collision.gameObject.layer == 3)
         {
             Destroy(collision.gameObject);
+            Debug.Log("Enemy Killed");
+            logic.addScore(1);
         }
     }
 }
